@@ -1,0 +1,154 @@
+/* Estilos generales */
+body {
+    background-color: #f5f6fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container-fluid {
+    flex: 1;
+}
+
+/* Navbar */
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.3rem;
+}
+
+/* Dashboard cards */
+.stat-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-card .card-body {
+    padding: 1.5rem;
+}
+
+.stat-card .stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+}
+
+.stat-card .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.stat-card .stat-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
+
+/* Tables */
+.table-hover tbody tr {
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+/* Cards generales */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+    font-weight: 600;
+}
+
+/* Badge estados */
+.badge-activo { background-color: #28a745; }
+.badge-suspendido { background-color: #ffc107; color: #333; }
+.badge-baja { background-color: #dc3545; }
+.badge-pendiente { background-color: #17a2b8; }
+.badge-autorizada { background-color: #28a745; }
+.badge-rechazada { background-color: #dc3545; }
+.badge-facturada { background-color: #6f42c1; }
+.badge-aprobada { background-color: #28a745; }
+.badge-pagada { background-color: #007bff; }
+
+/* Login page */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.login-card .card-body {
+    padding: 2.5rem;
+}
+
+.login-logo {
+    font-size: 3rem;
+    color: #0d6efd;
+}
+
+/* Search bar */
+.search-bar {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.5rem;
+}
+
+/* Detail page */
+.detail-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.detail-header h2 {
+    margin-bottom: 0.25rem;
+}
+
+/* Pagination */
+.pagination .page-link {
+    border-radius: 8px;
+    margin: 0 2px;
+    border: none;
+}
+
+/* Footer */
+footer {
+    margin-top: auto !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .stat-card .stat-number {
+        font-size: 1.5rem;
+    }
+
+    .stat-card .stat-icon {
+        font-size: 2rem;
+    }
+
+    .detail-header {
+        padding: 1.5rem;
+    }
+}

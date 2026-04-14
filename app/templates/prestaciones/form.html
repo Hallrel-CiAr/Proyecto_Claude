@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - Obra Social{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>{{ title }}</h4>
+            <a href="{{ url_for('prestaciones.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.numero_orden.label.text }}</label>
+                            {{ form.numero_orden(class="form-control") }}
+                            {% for error in form.numero_orden.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.fecha.label.text }}</label>
+                            {{ form.fecha(class="form-control", type="date") }}
+                            {% for error in form.fecha.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.estado.label.text }}</label>
+                            {{ form.estado(class="form-select") }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.afiliado_id.label.text }}</label>
+                            {{ form.afiliado_id(class="form-select") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.prestador_id.label.text }}</label>
+                            {{ form.prestador_id(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="text-muted mb-3">Datos de la Práctica</h6>
+
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.codigo_practica.label.text }}</label>
+                            {{ form.codigo_practica(class="form-control") }}
+                            {% for error in form.codigo_practica.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.descripcion.label.text }}</label>
+                            {{ form.descripcion(class="form-control") }}
+                            {% for error in form.descripcion.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.cantidad.label.text }}</label>
+                            {{ form.cantidad(class="form-control", type="number", min="1") }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.monto_total.label.text }}</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.monto_total(class="form-control", step="0.01") }}
+                            </div>
+                            {% for error in form.monto_total.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.cobertura_porcentaje.label.text }}</label>
+                            <div class="input-group">
+                                {{ form.cobertura_porcentaje(class="form-control", step="0.01") }}
+                                <span class="input-group-text">%</span>
+                            </div>
+                            {% for error in form.cobertura_porcentaje.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="text-muted mb-3">Información Clínica</h6>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.diagnostico.label.text }}</label>
+                            {{ form.diagnostico(class="form-control") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.observaciones.label.text }}</label>
+                            {{ form.observaciones(class="form-control", rows="2") }}
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> {{ form.submit.label.text }}
+                        </button>
+                        <a href="{{ url_for('prestaciones.index') }}" class="btn btn-outline-secondary ms-2">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

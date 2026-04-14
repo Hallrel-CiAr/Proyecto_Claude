@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - Obra Social{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>{{ title }}</h4>
+            <a href="{{ url_for('afiliados.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.numero_afiliado.label.text }}</label>
+                            {{ form.numero_afiliado(class="form-control") }}
+                            {% for error in form.numero_afiliado.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.dni.label.text }}</label>
+                            {{ form.dni(class="form-control") }}
+                            {% for error in form.dni.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.estado.label.text }}</label>
+                            {{ form.estado(class="form-select") }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.apellido.label.text }}</label>
+                            {{ form.apellido(class="form-control") }}
+                            {% for error in form.apellido.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.nombre.label.text }}</label>
+                            {{ form.nombre(class="form-control") }}
+                            {% for error in form.nombre.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ form.fecha_nacimiento.label.text }}</label>
+                            {{ form.fecha_nacimiento(class="form-control", type="date") }}
+                            {% for error in form.fecha_nacimiento.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ form.sexo.label.text }}</label>
+                            {{ form.sexo(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="text-muted mb-3">Datos de Contacto</h6>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.direccion.label.text }}</label>
+                            {{ form.direccion(class="form-control") }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.localidad.label.text }}</label>
+                            {{ form.localidad(class="form-control") }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.provincia.label.text }}</label>
+                            {{ form.provincia(class="form-select") }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-2">
+                            <label class="form-label">{{ form.codigo_postal.label.text }}</label>
+                            {{ form.codigo_postal(class="form-control") }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.telefono.label.text }}</label>
+                            {{ form.telefono(class="form-control") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.email.label.text }}</label>
+                            {{ form.email(class="form-control", type="email") }}
+                            {% for error in form.email.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="text-muted mb-3">Plan y Grupo Familiar</h6>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.plan_id.label.text }}</label>
+                            {{ form.plan_id(class="form-select") }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.fecha_alta.label.text }}</label>
+                            {{ form.fecha_alta(class="form-control", type="date") }}
+                            {% for error in form.fecha_alta.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ form.parentesco.label.text }}</label>
+                            {{ form.parentesco(class="form-select") }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.titular_id.label.text }}</label>
+                            {{ form.titular_id(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> {{ form.submit.label.text }}
+                        </button>
+                        <a href="{{ url_for('afiliados.index') }}" class="btn btn-outline-secondary ms-2">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - Obra Social{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>{{ title }}</h4>
+            <a href="{{ url_for('facturacion.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.numero_factura.label.text }}</label>
+                            {{ form.numero_factura(class="form-control") }}
+                            {% for error in form.numero_factura.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">{{ form.prestador_id.label.text }}</label>
+                            {{ form.prestador_id(class="form-select") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.estado.label.text }}</label>
+                            {{ form.estado(class="form-select") }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.periodo.label.text }}</label>
+                            {{ form.periodo(class="form-control", placeholder="2026-04") }}
+                            {% for error in form.periodo.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.fecha_emision.label.text }}</label>
+                            {{ form.fecha_emision(class="form-control", type="date") }}
+                            {% for error in form.fecha_emision.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.fecha_vencimiento.label.text }}</label>
+                            {{ form.fecha_vencimiento(class="form-control", type="date") }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-12">
+                            <label class="form-label">{{ form.observaciones.label.text }}</label>
+                            {{ form.observaciones(class="form-control", rows="3") }}
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> {{ form.submit.label.text }}
+                        </button>
+                        <a href="{{ url_for('facturacion.index') }}" class="btn btn-outline-secondary ms-2">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

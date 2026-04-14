@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Prestación {{ prestacion.numero_orden }} - Obra Social{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2>Prestación {{ prestacion.numero_orden }}</h2>
+            <p class="mb-0">
+                <span class="badge badge-{{ prestacion.estado }} fs-6">{{ prestacion.estado|capitalize }}</span>
+                <span class="ms-2">{{ prestacion.fecha.strftime('%d/%m/%Y') }}</span>
+            </p>
+        </div>
+        <div>
+            {% if prestacion.estado == 'pendiente' %}
+            <form method="POST" action="{{ url_for('prestaciones.autorizar', id=prestacion.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-success me-1">
+                    <i class="bi bi-check-circle"></i> Autorizar
+                </button>
+            </form>
+            <form method="POST" action="{{ url_for('prestaciones.rechazar', id=prestacion.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger me-1">
+                    <i class="bi bi-x-circle"></i> Rechazar
+                </button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('prestaciones.edit', id=prestacion.id) }}" class="btn btn-light me-1">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+            <a href="{{ url_for('prestaciones.index') }}" class="btn btn-outline-light">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-white"><i class="bi bi-clipboard2-pulse"></i> Datos de la Prestación</div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr><th width="35%">N° Orden</th><td>{{ prestacion.numero_orden }}</td></tr>
+                    <tr><th>Fecha</th><td>{{ prestacion.fecha.strftime('%d/%m/%Y') }}</td></tr>
+                    <tr><th>Código Práctica</th><td>{{ prestacion.codigo_practica }}</td></tr>
+                    <tr><th>Descripción</th><td>{{ prestacion.descripcion }}</td></tr>
+                    <tr><th>Cantidad</th><td>{{ prestacion.cantidad }}</td></tr>
+                    <tr><th>Diagnóstico</th><td>{{ prestacion.diagnostico or '-' }}</td></tr>
+                    <tr><th>Observaciones</th><td>{{ prestacion.observaciones or '-' }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card mb-3">
+            <div class="card-header bg-white"><i class="bi bi-currency-dollar"></i> Montos</div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr><th width="35%">Monto Total</th><td class="fs-5">${{ "%.2f"|format(prestacion.monto_total) }}</td></tr>
+                    <tr><th>Cobertura</th><td>{{ prestacion.cobertura_porcentaje }}%</td></tr>
+                    <tr><th>Monto Cobertura</th><td class="text-success fw-bold">${{ "%.2f"|format(prestacion.monto_cobertura) }}</td></tr>
+                    <tr><th>Coseguro (afiliado)</th><td class="text-danger">${{ "%.2f"|format(prestacion.monto_coseguro) }}</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white"><i class="bi bi-people"></i> Participantes</div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th width="35%">Afiliado</th>
+                        <td>
+                            <a href="{{ url_for('afiliados.detail', id=prestacion.afiliado.id) }}">
+                                {{ prestacion.afiliado.nombre_completo }}
+                            </a>
+                            <br><small class="text-muted">{{ prestacion.afiliado.numero_afiliado }}</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Prestador</th>
+                        <td>
+                            <a href="{{ url_for('prestadores.detail', id=prestacion.prestador.id) }}">
+                                {{ prestacion.prestador.nombre_completo }}
+                            </a>
+                            <br><small class="text-muted">{{ prestacion.prestador.matricula }}</small>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

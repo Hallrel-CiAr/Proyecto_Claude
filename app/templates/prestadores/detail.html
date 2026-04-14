@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ prestador.nombre_completo }} - Obra Social{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2>{{ prestador.nombre_completo }}</h2>
+            <p class="mb-0">
+                <span class="badge bg-light text-primary fs-6">{{ prestador.matricula }}</span>
+                <span class="badge bg-light text-dark fs-6 ms-2">{{ prestador.tipo|capitalize }}</span>
+                <span class="badge badge-{{ prestador.estado }} fs-6 ms-2">{{ prestador.estado|capitalize }}</span>
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('prestadores.edit', id=prestador.id) }}" class="btn btn-light me-1">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+            <a href="{{ url_for('prestadores.index') }}" class="btn btn-outline-light">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-white"><i class="bi bi-person-badge"></i> Datos del Prestador</div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr><th width="35%">Matrícula</th><td>{{ prestador.matricula }}</td></tr>
+                    <tr><th>CUIT</th><td>{{ prestador.cuit }}</td></tr>
+                    <tr><th>Nombre</th><td>{{ prestador.nombre }}</td></tr>
+                    <tr><th>Apellido</th><td>{{ prestador.apellido or '-' }}</td></tr>
+                    <tr><th>Razón Social</th><td>{{ prestador.razon_social or '-' }}</td></tr>
+                    <tr><th>Tipo</th><td>{{ prestador.tipo|capitalize }}</td></tr>
+                    <tr><th>Especialidad</th><td>{{ prestador.especialidad or '-' }}</td></tr>
+                    <tr><th>Fecha Convenio</th><td>{{ prestador.fecha_convenio.strftime('%d/%m/%Y') if prestador.fecha_convenio else '-' }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-white"><i class="bi bi-geo-alt"></i> Contacto</div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr><th width="35%">Dirección</th><td>{{ prestador.direccion or '-' }}</td></tr>
+                    <tr><th>Localidad</th><td>{{ prestador.localidad or '-' }}</td></tr>
+                    <tr><th>Provincia</th><td>{{ prestador.provincia or '-' }}</td></tr>
+                    <tr><th>Teléfono</th><td>{{ prestador.telefono or '-' }}</td></tr>
+                    <tr><th>Email</th><td>{{ prestador.email or '-' }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.es_admin() %}
+<div class="mt-4">
+    <form method="POST" action="{{ url_for('prestadores.delete', id=prestador.id) }}"
+          data-confirm="¿Está seguro que desea eliminar este prestador?"
+          class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash"></i> Eliminar Prestador
+        </button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

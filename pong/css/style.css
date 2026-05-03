@@ -1,0 +1,619 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+:root {
+  --bg: #0a0a1a;
+  --surface: #12122a;
+  --border: #2a2a4a;
+  --primary: #00e5ff;
+  --primary-dark: #00b8d4;
+  --accent: #ff4081;
+  --text: #e0e0ff;
+  --text-dim: #8888aa;
+  --success: #00e676;
+  --warning: #ffea00;
+  --danger: #ff1744;
+  --radius: 12px;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+}
+
+/* ─── SCREENS ─── */
+.screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  overflow-y: auto;
+}
+
+.hidden { display: none !important; }
+
+/* ─── LOGIN ─── */
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 48px;
+}
+
+.logo h1 {
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: var(--primary);
+  text-shadow: 0 0 20px var(--primary);
+}
+
+.logo-ball {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 30px white, 0 0 60px var(--primary);
+  margin-bottom: 16px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 30px white, 0 0 60px var(--primary); }
+  50%       { box-shadow: 0 0 15px white, 0 0 30px var(--primary); }
+}
+
+.login-buttons {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ─── BUTTONS ─── */
+.btn {
+  width: 100%;
+  padding: 16px 24px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn:active { transform: scale(0.96); }
+
+.btn-google {
+  background: white;
+  color: #333;
+}
+.btn-google:active { background: #f0f0f0; }
+.btn-google img { width: 20px; height: 20px; }
+
+.btn-guest {
+  background: transparent;
+  color: var(--text-dim);
+  border: 2px solid var(--border);
+}
+.btn-guest:active { border-color: var(--primary); color: var(--primary); }
+
+.btn-primary {
+  background: var(--primary);
+  color: #000;
+  font-size: 1rem;
+}
+.btn-primary:active { background: var(--primary-dark); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-dim);
+  border: 2px solid var(--border);
+}
+.btn-secondary:active { border-color: var(--primary); color: var(--primary); }
+
+.btn-back {
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 12px;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: color 0.15s;
+}
+.btn-icon:active { color: var(--primary); }
+
+/* ─── LOADING / SPINNER ─── */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── MENU ─── */
+.menu-header {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  overflow: hidden;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+#player-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-content {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.menu-title {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--primary);
+  text-align: center;
+  text-shadow: 0 0 20px var(--primary);
+  margin-bottom: 8px;
+}
+
+.menu-content h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--primary);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* ─── CONFIG OPTIONS ─── */
+.config-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: -8px;
+}
+
+.option-group {
+  display: flex;
+  gap: 8px;
+}
+
+.option-btn {
+  flex: 1;
+  padding: 12px 8px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.option-btn.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(0, 229, 255, 0.08);
+}
+.option-btn:active { transform: scale(0.95); }
+
+/* ─── FORM INPUTS ─── */
+.input-field {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-field:focus { border-color: var(--primary); }
+.input-field::placeholder { color: var(--text-dim); }
+
+.input-code {
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* ─── ROOM CODE DISPLAY ─── */
+.room-code-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+#room-code-text {
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: var(--primary);
+  text-shadow: 0 0 12px var(--primary);
+}
+
+.waiting-text {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+.waiting-text strong { color: var(--primary); }
+
+.waiting-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  margin: 8px 0;
+}
+
+.error-text {
+  color: var(--danger);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 8px;
+  background: rgba(255, 23, 68, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 23, 68, 0.3);
+}
+
+.loading-text {
+  color: var(--text-dim);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+/* ─── HISTORY ─── */
+.history-list {
+  max-height: 55vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-item .vs { font-size: 0.85rem; color: var(--text-dim); }
+.history-item .opponent { font-weight: 700; font-size: 0.95rem; }
+.history-item .score { font-weight: 800; font-size: 1rem; }
+.history-item.win .score { color: var(--success); }
+.history-item.loss .score { color: var(--danger); }
+.history-item .date { font-size: 0.75rem; color: var(--text-dim); }
+
+/* ─── GAME SCREEN ─── */
+#game-wrapper {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Top HUD bar */
+#hud-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Bottom HUD bar */
+#hud-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+  z-index: 10;
+}
+
+.hud-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 55%;
+}
+
+.hud-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.hud-score {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--primary);
+  min-width: 36px;
+  text-align: center;
+  line-height: 1;
+}
+
+.hud-pauses {
+  display: flex;
+  gap: 4px;
+}
+.hud-pause-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0.8;
+}
+.hud-pause-dot.used { background: var(--border); opacity: 0.5; }
+
+#btn-pause {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 1.1rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  pointer-events: all;
+  transition: background 0.15s;
+}
+#btn-pause:active { background: rgba(255,255,255,0.25); }
+#btn-pause:disabled { opacity: 0.3; cursor: default; }
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+/* ─── OVERLAYS ─── */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.overlay.hidden { display: none; }
+
+.countdown-number {
+  font-size: 8rem;
+  font-weight: 900;
+  color: var(--primary);
+  text-shadow: 0 0 40px var(--primary);
+  line-height: 1;
+  animation: countIn 0.5s ease-out;
+}
+@keyframes countIn {
+  from { transform: scale(2); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.countdown-label {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin-top: 8px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.pause-overlay-title {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--warning);
+  text-shadow: 0 0 20px var(--warning);
+  margin-bottom: 8px;
+}
+
+.pause-info {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+}
+
+#btn-resume {
+  background: var(--primary);
+  color: #000;
+  border: none;
+  border-radius: var(--radius);
+  padding: 16px 48px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.gameover-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+}
+.gameover-title.win  { color: var(--success); text-shadow: 0 0 20px var(--success); }
+.gameover-title.loss { color: var(--danger);  text-shadow: 0 0 20px var(--danger); }
+.gameover-title.draw { color: var(--warning); text-shadow: 0 0 20px var(--warning); }
+
+.gameover-score {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: white;
+  margin: 8px 0 24px;
+}
+
+.gameover-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 240px;
+}
+
+.btn-gameover-primary {
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: #000;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-gameover-secondary {
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ─── CONNECTING SCREEN ─── */
+#connecting-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+#connecting-screen p {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}

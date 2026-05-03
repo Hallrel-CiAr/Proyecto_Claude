@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ping Pong - Menú</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="screen">
+
+    <!-- Header with player info -->
+    <div class="menu-header">
+      <div class="player-info">
+        <div class="avatar" id="player-avatar">?</div>
+        <span id="player-name">Cargando...</span>
+      </div>
+      <button class="btn-icon" id="btn-logout" title="Salir">✕</button>
+    </div>
+
+    <!-- MAIN MENU -->
+    <div class="menu-content" id="view-main">
+      <h2 class="menu-title">PING PONG</h2>
+      <div class="menu-buttons">
+        <button class="btn btn-primary" id="btn-vs-ai">🤖 VS Inteligencia Artificial</button>
+        <button class="btn btn-primary" id="btn-multiplayer">🌐 Multijugador Online</button>
+        <button class="btn btn-secondary" id="btn-history">📋 Historial de Partidas</button>
+      </div>
+    </div>
+
+    <!-- VS AI CONFIG -->
+    <div class="menu-content hidden" id="view-ai-config">
+      <h2>CONFIGURAR PARTIDA</h2>
+
+      <span class="config-label">Dificultad</span>
+      <div class="option-group" id="difficulty-group">
+        <button class="option-btn" data-value="easy">Fácil</button>
+        <button class="option-btn active" data-value="normal">Normal</button>
+        <button class="option-btn" data-value="hard">Difícil</button>
+      </div>
+
+      <span class="config-label">Puntos para ganar</span>
+      <div class="option-group" id="points-ai-group">
+        <button class="option-btn" data-value="2">2</button>
+        <button class="option-btn active" data-value="5">5</button>
+        <button class="option-btn" data-value="10">10</button>
+        <button class="option-btn" data-value="20">20</button>
+      </div>
+
+      <div class="menu-buttons">
+        <button class="btn btn-primary" id="btn-start-ai">¡JUGAR!</button>
+        <button class="btn btn-back" id="btn-back-ai">← Volver</button>
+      </div>
+    </div>
+
+    <!-- MULTIPLAYER OPTIONS -->
+    <div class="menu-content hidden" id="view-multiplayer">
+      <h2>MULTIJUGADOR</h2>
+      <div class="menu-buttons">
+        <button class="btn btn-primary" id="btn-create-room">➕ Crear Sala</button>
+        <button class="btn btn-primary" id="btn-join-room">🔗 Unirse a Sala</button>
+        <button class="btn btn-back" id="btn-back-multi">← Volver</button>
+      </div>
+    </div>
+
+    <!-- CREATE ROOM -->
+    <div class="menu-content hidden" id="view-create-room">
+      <h2>CREAR SALA</h2>
+
+      <span class="config-label">Puntos para ganar</span>
+      <div class="option-group" id="points-room-group">
+        <button class="option-btn" data-value="2">2</button>
+        <button class="option-btn active" data-value="5">5</button>
+        <button class="option-btn" data-value="10">10</button>
+        <button class="option-btn" data-value="20">20</button>
+      </div>
+
+      <span class="config-label">Contraseña (opcional)</span>
+      <input type="text" class="input-field" id="room-password" placeholder="Sin contraseña = sala abierta" maxlength="20" autocomplete="off">
+
+      <div class="menu-buttons">
+        <button class="btn btn-primary" id="btn-confirm-create">Crear Sala</button>
+        <button class="btn btn-back" id="btn-back-create">← Volver</button>
+      </div>
+    </div>
+
+    <!-- WAITING FOR OPPONENT -->
+    <div class="menu-content hidden" id="view-waiting">
+      <h2>SALA CREADA</h2>
+      <p class="waiting-text">Compartí este código con tu rival:</p>
+
+      <div class="room-code-display">
+        <span id="room-code-text">------</span>
+        <button class="btn-icon" id="btn-copy-code">📋</button>
+      </div>
+
+      <div id="password-display" class="hidden">
+        <p class="waiting-text">Contraseña: <strong id="room-password-display"></strong></p>
+      </div>
+
+      <div class="waiting-indicator">
+        <div class="spinner"></div>
+        <span>Esperando rival...</span>
+      </div>
+
+      <button class="btn btn-back" id="btn-cancel-room">✕ Cancelar sala</button>
+    </div>
+
+    <!-- JOIN ROOM -->
+    <div class="menu-content hidden" id="view-join-room">
+      <h2>UNIRSE A SALA</h2>
+
+      <span class="config-label">Código de sala</span>
+      <input type="text" class="input-field input-code" id="join-code" placeholder="XXXXXX" maxlength="6" autocomplete="off">
+
+      <span class="config-label">Contraseña (si tiene)</span>
+      <input type="text" class="input-field" id="join-password" placeholder="Dejar vacío si no tiene" autocomplete="off">
+
+      <div id="join-error" class="error-text hidden"></div>
+
+      <div class="menu-buttons">
+        <button class="btn btn-primary" id="btn-confirm-join">Unirse</button>
+        <button class="btn btn-back" id="btn-back-join">← Volver</button>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="menu-content hidden" id="view-history">
+      <h2>HISTORIAL</h2>
+      <div class="history-list" id="history-list"></div>
+      <div style="margin-top: 8px;">
+        <button class="btn btn-back" id="btn-back-history">← Volver</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/names.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/menu.js"></script>
+</body>
+</html>

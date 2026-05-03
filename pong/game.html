@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ping Pong - Jugando</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-wrapper">
+
+    <canvas id="game-canvas"></canvas>
+
+    <!-- TOP HUD (opponent) -->
+    <div id="hud-top">
+      <div class="hud-player">
+        <span class="hud-name" id="hud-opponent-name">Oponente</span>
+        <div class="hud-pauses" id="hud-opponent-pauses"></div>
+      </div>
+      <div class="hud-score" id="hud-score-opponent">0</div>
+    </div>
+
+    <!-- BOTTOM HUD (local player) -->
+    <div id="hud-bottom">
+      <div class="hud-player">
+        <span class="hud-name" id="hud-player-name">Jugador</span>
+        <div class="hud-pauses" id="hud-player-pauses"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="hud-score" id="hud-score-player">0</div>
+        <button id="btn-pause">⏸</button>
+      </div>
+    </div>
+
+    <!-- COUNTDOWN OVERLAY -->
+    <div class="overlay hidden" id="overlay-countdown">
+      <div class="countdown-number" id="countdown-num">3</div>
+      <div class="countdown-label" id="countdown-label">¡Preparate!</div>
+    </div>
+
+    <!-- PAUSE OVERLAY -->
+    <div class="overlay hidden" id="overlay-pause">
+      <div class="pause-overlay-title">⏸ PAUSA</div>
+      <div class="pause-info" id="pause-info">Pausas restantes: <span id="pauses-left">2</span></div>
+      <button id="btn-resume">▶ Continuar</button>
+    </div>
+
+    <!-- GAME OVER OVERLAY -->
+    <div class="overlay hidden" id="overlay-gameover">
+      <div class="gameover-title" id="gameover-title">¡GANASTE!</div>
+      <div class="gameover-score" id="gameover-score">0 - 0</div>
+      <div class="gameover-buttons">
+        <button class="btn-gameover-primary" id="btn-play-again">Jugar de nuevo</button>
+        <button class="btn-gameover-secondary" id="btn-back-menu">← Menú principal</button>
+      </div>
+    </div>
+
+    <!-- CONNECTING OVERLAY (multiplayer only) -->
+    <div class="overlay hidden" id="overlay-connecting">
+      <div id="connecting-screen">
+        <div class="spinner"></div>
+        <p id="connecting-msg">Conectando a la sala...</p>
+        <button class="btn-gameover-secondary" style="margin-top:16px;" id="btn-abort-connect">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- OPPONENT LEFT OVERLAY -->
+    <div class="overlay hidden" id="overlay-opponent-left">
+      <div class="gameover-title win">¡VICTORIA!</div>
+      <div class="pause-info">Tu rival abandonó la partida.</div>
+      <div class="gameover-score" id="forfeit-score">0 - 0</div>
+      <div class="gameover-buttons" style="margin-top:16px;">
+        <button class="btn-gameover-secondary" id="btn-back-menu-forfeit">← Menú principal</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/names.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

@@ -402,93 +402,8 @@ html, body {
   position: fixed;
   inset: 0;
   background: #000;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
-
-/* Top HUD bar */
-#hud-top {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
-  z-index: 10;
-  pointer-events: none;
-}
-
-/* Bottom HUD bar */
-#hud-bottom {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
-  z-index: 10;
-}
-
-.hud-player {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: 55%;
-}
-
-.hud-name {
-  font-size: 0.8rem;
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text);
-}
-
-.hud-score {
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: var(--primary);
-  min-width: 36px;
-  text-align: center;
-  line-height: 1;
-}
-
-.hud-pauses {
-  display: flex;
-  gap: 4px;
-}
-.hud-pause-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--primary);
-  opacity: 0.8;
-}
-.hud-pause-dot.used { background: var(--border); opacity: 0.5; }
-
-#btn-pause {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 8px;
-  color: white;
-  font-size: 1.1rem;
-  padding: 6px 10px;
-  cursor: pointer;
-  pointer-events: all;
-  transition: background 0.15s;
-}
-#btn-pause:active { background: rgba(255,255,255,0.25); }
-#btn-pause:disabled { opacity: 0.3; cursor: default; }
 
 #game-canvas {
   position: absolute;
@@ -498,6 +413,91 @@ html, body {
   display: block;
   touch-action: none;
 }
+
+/* ─── HUD BAR (horizontal layout) ─── */
+#hud-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  background: rgba(0,0,0,0.82);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 10;
+}
+
+.hud-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.hud-side-right {
+  justify-content: flex-end;
+}
+
+.hud-center {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--border);
+  letter-spacing: 2px;
+  padding: 0 8px;
+}
+
+.hud-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.hud-score {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: var(--primary);
+  min-width: 30px;
+  text-align: center;
+  line-height: 1;
+}
+
+.hud-pauses {
+  display: flex;
+  gap: 3px;
+}
+.hud-pause-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0.8;
+}
+.hud-pause-dot.used { background: var(--border); opacity: 0.4; }
+
+.hud-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.hud-actions button {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 7px;
+  color: white;
+  font-size: 0.95rem;
+  padding: 5px 9px;
+  cursor: pointer;
+  transition: background 0.15s;
+  line-height: 1;
+}
+.hud-actions button:active { background: rgba(255,255,255,0.22); }
+.hud-actions button:disabled { opacity: 0.25; cursor: default; }
 
 /* ─── OVERLAYS ─── */
 .overlay {
@@ -543,10 +543,18 @@ html, body {
   margin-bottom: 8px;
 }
 
+.pause-timer {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: var(--warning);
+  line-height: 1;
+  margin: 4px 0 8px;
+}
+
 .pause-info {
   color: var(--text-dim);
   font-size: 0.9rem;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 #btn-resume {

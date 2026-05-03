@@ -1,7 +1,7 @@
-// ─── CONFIG & PARAMS ─────────────────────────────────────────────────────────
-const params = new URLSearchParams(window.location.search);
-const GAME_MODE    = params.get('mode')         || 'ai';     // 'ai' | 'multi'
-const ROLE         = params.get('role')         || 'host';   // 'host' | 'guest'
+// ─── PARAMS ───────────────────────────────────────────────────────────────────
+const params       = new URLSearchParams(window.location.search);
+const GAME_MODE    = params.get('mode')         || 'ai';
+const ROLE         = params.get('role')         || 'host';
 const ROOM_CODE    = params.get('roomCode')     || '';
 const MAX_POINTS   = parseInt(params.get('points')) || 5;
 const DIFFICULTY   = params.get('difficulty')   || 'normal';
@@ -10,151 +10,166 @@ const PLAYER_UID   = params.get('playerUid')    || '';
 const OPPONENT_NAME= params.get('opponentName') || (GAME_MODE === 'ai' ? 'CPU' : 'Rival');
 const IS_GUEST     = params.get('isGuest') === 'true';
 
-// ─── CANVAS SETUP ─────────────────────────────────────────────────────────────
+// ─── CANVAS ───────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('game-canvas');
 const ctx    = canvas.getContext('2d');
 
+const HUD_H = 52; // height of HUD bar in px
+
 let W, H;
-let PADDLE_W, PADDLE_H, BALL_R, PADDLE_Y_BOTTOM, PADDLE_Y_TOP, PADDLE_MARGIN;
+let FIELD_TOP, FIELD_BOTTOM;
+let PADDLE_H, PADDLE_W, BALL_R;
+let PADDLE_X_RIGHT, PADDLE_X_LEFT;
 
 function resizeCanvas() {
   W = canvas.width  = window.innerWidth;
   H = canvas.height = window.innerHeight;
 
-  PADDLE_W        = W * 0.22;
-  PADDLE_H        = H * 0.022;
-  BALL_R          = W * 0.025;
-  PADDLE_MARGIN   = H * 0.12;
-  PADDLE_Y_BOTTOM = H - PADDLE_MARGIN;
-  PADDLE_Y_TOP    = PADDLE_MARGIN;
+  FIELD_TOP    = HUD_H + 1;
+  FIELD_BOTTOM = H - 6;
+
+  const fieldH = FIELD_BOTTOM - FIELD_TOP;
+
+  PADDLE_H      = fieldH * 0.20;          // paddle length (vertical)
+  PADDLE_W      = Math.max(8, W * 0.014); // paddle thickness
+  BALL_R        = Math.min(W, fieldH) * 0.016;
+  PADDLE_X_LEFT  = W * 0.048;
+  PADDLE_X_RIGHT = W - W * 0.048;
 }
 
 resizeCanvas();
-window.addEventListener('resize', () => { resizeCanvas(); });
+window.addEventListener('resize', () => { resizeCanvas(); placeServe(); });
 
 // ─── GAME STATE ───────────────────────────────────────────────────────────────
-const PHASE = { COUNTDOWN: 'countdown', PLAYING: 'playing', PAUSED: 'paused',
-                SCORED: 'scored', FINISHED: 'finished' };
+const PHASE = {
+  COUNTDOWN: 'countdown',
+  PLAYING:   'playing',
+  PAUSED:    'paused',
+  SCORED:    'scored',
+  FINISHED:  'finished'
+};
 
-let phase        = PHASE.COUNTDOWN;
-let scores       = { bottom: 0, top: 0 };
-let pauses       = { bottom: 2, top: 2 };
-let serving      = 'bottom';
+let phase        = PHASE.SCORED;
+let scores       = { right: 0, left: 0 };  // right = local player, left = opponent
+let pauses       = { right: 2, left: 2 };
+let serving      = 'right';                 // who serves next
 let countdownVal = 3;
 let countdownTimer = null;
-let pausedBy     = null;
+let pauseTimer   = null;
+let pauseSeconds = 15;
 let winner       = null;
 
-// Ball (pixel coords, managed by host)
+// Ball
 let ball = { x: 0, y: 0, vx: 0, vy: 0 };
 
-// Paddles (pixel coords)
-let paddleBottom = { x: 0 };
-let paddleTop    = { x: 0 };
+// Paddles (Y = center of paddle)
+let paddleRight = { y: 0 };
+let paddleLeft  = { y: 0 };
 
-// Touch
-let touchX = null;
+// Touch / mouse
+let touchY = null;
 
 // AI
-let aiTargetX = 0;
+const AI_CFG = {
+  easy:   { speed: 0.18, errorRange: 0.13, predicts: false },
+  normal: { speed: 0.36, errorRange: 0.05, predicts: false },
+  hard:   { speed: 0.60, errorRange: 0.01, predicts: true  }
+};
+const ai         = AI_CFG[DIFFICULTY] || AI_CFG.normal;
+let aiError      = 0;
+let aiErrorTimer = 0;
 
 // Multiplayer
-let roomRef = null;
+let roomRef          = null;
 let opponentConnected = false;
-let lastSyncTime = 0;
-const SYNC_INTERVAL = 33; // ~30fps sync to Firebase
+let lastSyncTime     = 0;
+const SYNC_MS        = 33;
 
-// Animation frame
-let rafId = null;
+// Loop
+let rafId    = null;
 let lastTime = 0;
 
-// ─── AI SETTINGS ──────────────────────────────────────────────────────────────
-const AI_CONFIG = {
-  easy:   { speed: 0.20, reactionDelay: 0.4, errorRange: 0.12, predicts: false },
-  normal: { speed: 0.38, reactionDelay: 0.2, errorRange: 0.05, predicts: false },
-  hard:   { speed: 0.60, reactionDelay: 0.05, errorRange: 0.01, predicts: true  }
-};
-const ai = AI_CONFIG[DIFFICULTY] || AI_CONFIG.normal;
-let aiCurrentError = 0;
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function fieldCenterY() { return FIELD_TOP + (FIELD_BOTTOM - FIELD_TOP) / 2; }
 
-// ─── INITIALIZE ───────────────────────────────────────────────────────────────
-function initPositions() {
-  paddleBottom.x = W / 2;
-  paddleTop.x    = W / 2;
-  resetBall(serving);
+function clampPaddleY(y) {
+  return Math.max(FIELD_TOP + PADDLE_H / 2, Math.min(FIELD_BOTTOM - PADDLE_H / 2, y));
 }
 
-function resetBall(server) {
-  const cx = W / 2;
-  const cy = H / 2;
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function initPositions() {
+  paddleRight.y = fieldCenterY();
+  paddleLeft.y  = fieldCenterY();
+  placeServe();
+}
 
-  ball.x = cx;
-  ball.y = (server === 'bottom') ? PADDLE_Y_BOTTOM - BALL_R * 3 : PADDLE_Y_TOP + BALL_R * 3;
+function placeServe() {
+  // Ball sits at serving paddle while waiting
+  const cx = (serving === 'right') ? PADDLE_X_RIGHT - PADDLE_W - BALL_R - 4
+                                    : PADDLE_X_LEFT  + PADDLE_W + BALL_R + 4;
+  ball.x  = cx;
+  ball.y  = (serving === 'right') ? paddleRight.y : paddleLeft.y;
   ball.vx = 0;
   ball.vy = 0;
 }
 
-function launchBall(server) {
-  const baseSpeed = H * 0.55; // pixels per second
-  const angle = (Math.random() * 40 - 20) * (Math.PI / 180); // ±20° random
-  const dirY = server === 'bottom' ? -1 : 1;
-
-  ball.vx = Math.sin(angle) * baseSpeed;
-  ball.vy = dirY * Math.cos(angle) * baseSpeed;
+function launchBall() {
+  const baseSpeed = W * 0.52;
+  const angle = (Math.random() * 30 - 15) * (Math.PI / 180); // ±15°
+  const dirX  = (serving === 'right') ? -1 : 1;
+  ball.vx = dirX  * Math.cos(angle) * baseSpeed;
+  ball.vy = Math.sin(angle) * baseSpeed;
 }
 
 // ─── HUD ──────────────────────────────────────────────────────────────────────
 function updateHUD() {
-  document.getElementById('hud-player-name').textContent = PLAYER_NAME;
+  document.getElementById('hud-player-name').textContent   = PLAYER_NAME;
   document.getElementById('hud-opponent-name').textContent = OPPONENT_NAME;
-  document.getElementById('hud-score-player').textContent = scores.bottom;
-  document.getElementById('hud-score-opponent').textContent = scores.top;
+  document.getElementById('hud-score-player').textContent   = scores.right;
+  document.getElementById('hud-score-opponent').textContent = scores.left;
 
-  renderPauseDots('hud-player-pauses', pauses.bottom);
-  renderPauseDots('hud-opponent-pauses', pauses.top);
+  renderPauseDots('hud-player-pauses',   pauses.right);
+  renderPauseDots('hud-opponent-pauses', pauses.left);
 
   const pauseBtn = document.getElementById('btn-pause');
-  const canPause = phase === PHASE.PLAYING && pauses.bottom > 0 && isBallInDomain('bottom');
-  pauseBtn.disabled = !canPause;
+  pauseBtn.disabled = !(phase === PHASE.PLAYING && pauses.right > 0 && ballInRightDomain());
 }
 
 function renderPauseDots(elId, remaining) {
   const el = document.getElementById(elId);
   el.innerHTML = '';
   for (let i = 0; i < 2; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'hud-pause-dot' + (i >= remaining ? ' used' : '');
-    el.appendChild(dot);
+    const d = document.createElement('div');
+    d.className = 'hud-pause-dot' + (i >= remaining ? ' used' : '');
+    el.appendChild(d);
   }
 }
 
-function isBallInDomain(side) {
-  if (side === 'bottom') return ball.y > H / 2;
-  return ball.y < H / 2;
-}
+function ballInRightDomain() { return ball.x > W / 2; }
+function ballInLeftDomain()  { return ball.x < W / 2; }
 
 // ─── OVERLAYS ─────────────────────────────────────────────────────────────────
+const ALL_OVERLAYS = ['overlay-countdown','overlay-pause','overlay-gameover',
+                      'overlay-connecting','overlay-opponent-left','overlay-exit'];
+
 function showOverlay(id) {
-  ['overlay-countdown','overlay-pause','overlay-gameover',
-   'overlay-connecting','overlay-opponent-left'].forEach(o => {
+  ALL_OVERLAYS.forEach(o => {
     document.getElementById(o).classList.toggle('hidden', o !== id);
   });
 }
 
 function hideAllOverlays() {
-  ['overlay-countdown','overlay-pause','overlay-gameover',
-   'overlay-connecting','overlay-opponent-left'].forEach(o => {
-    document.getElementById(o).classList.add('hidden');
-  });
+  ALL_OVERLAYS.forEach(o => document.getElementById(o).classList.add('hidden'));
 }
 
+// ─── COUNTDOWN ────────────────────────────────────────────────────────────────
 function startCountdown(label) {
   countdownVal = 3;
   phase = PHASE.COUNTDOWN;
+  placeServe();
   showOverlay('overlay-countdown');
   document.getElementById('countdown-label').textContent = label || '¡Preparate!';
   updateCountdownDisplay();
-
   clearInterval(countdownTimer);
   countdownTimer = setInterval(() => {
     countdownVal--;
@@ -162,7 +177,7 @@ function startCountdown(label) {
       clearInterval(countdownTimer);
       hideAllOverlays();
       phase = PHASE.PLAYING;
-      launchBall(serving);
+      launchBall();
     } else {
       updateCountdownDisplay();
     }
@@ -173,207 +188,239 @@ function updateCountdownDisplay() {
   const el = document.getElementById('countdown-num');
   el.textContent = countdownVal;
   el.style.animation = 'none';
-  void el.offsetWidth; // reflow to restart animation
+  void el.offsetWidth;
   el.style.animation = '';
 }
 
 // ─── INPUT ────────────────────────────────────────────────────────────────────
-canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-canvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
-canvas.addEventListener('touchend',   () => { touchX = null; });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); touchY = e.touches[0].clientY; }, { passive: false });
+canvas.addEventListener('touchmove',  e => { e.preventDefault(); touchY = e.touches[0].clientY; }, { passive: false });
+canvas.addEventListener('touchend',   () => { touchY = null; });
+canvas.addEventListener('mousemove',  e => { touchY = e.clientY; });
 
-canvas.addEventListener('mousemove', e => {
-  if (GAME_MODE === 'multi' && ROLE === 'guest') return;
-  touchX = e.clientX;
-});
-
-function onTouchStart(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  touchX = touch.clientX;
-}
-
-function onTouchMove(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  touchX = touch.clientX;
-}
-
+// ─── PAUSE ────────────────────────────────────────────────────────────────────
 document.getElementById('btn-pause').addEventListener('click', () => {
-  if (phase !== PHASE.PLAYING) return;
-  if (pauses.bottom <= 0) return;
-  if (!isBallInDomain('bottom')) return;
-
-  pauses.bottom--;
-  pausedBy = 'bottom';
-  phase = PHASE.PAUSED;
-
-  document.getElementById('pauses-left').textContent = pauses.bottom;
-  showOverlay('overlay-pause');
-
-  if (GAME_MODE === 'multi') syncPauseToFirebase();
+  if (phase !== PHASE.PLAYING || pauses.right <= 0 || !ballInRightDomain()) return;
+  triggerPause('right');
+  if (GAME_MODE === 'multi') roomRef?.child('gameEvents').set({ type:'pause', by:ROLE, ts:Date.now() });
 });
+
+function triggerPause(by) {
+  if (by === 'right') pauses.right--;
+  else                pauses.left--;
+  phase = PHASE.PAUSED;
+  pauseSeconds = 15;
+  document.getElementById('pauses-left').textContent = pauses.right;
+  document.getElementById('pause-timer').textContent = 15;
+  showOverlay('overlay-pause');
+  startPauseCountdown();
+}
+
+function startPauseCountdown() {
+  clearInterval(pauseTimer);
+  pauseTimer = setInterval(() => {
+    pauseSeconds--;
+    document.getElementById('pause-timer').textContent = pauseSeconds;
+    if (pauseSeconds <= 0) resumeGame();
+  }, 1000);
+}
 
 document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
 function resumeGame() {
-  if (phase !== PHASE.PAUSED) return;
-  pausedBy = null;
+  clearInterval(pauseTimer);
   hideAllOverlays();
   phase = PHASE.PLAYING;
+  if (GAME_MODE === 'multi') roomRef?.child('gameEvents').set({ type:'resume', by:ROLE, ts:Date.now() });
+}
 
-  if (GAME_MODE === 'multi') syncResumeToFirebase();
+// ─── EXIT / ABANDON ───────────────────────────────────────────────────────────
+document.getElementById('btn-exit').addEventListener('click', () => {
+  if (phase === PHASE.FINISHED) return;
+  const msg = GAME_MODE === 'multi'
+    ? `Tu rival ganará ${MAX_POINTS} - 0. ¿Confirmás?`
+    : '¿Seguro que querés salir de la partida?';
+  document.getElementById('exit-msg').textContent = msg;
+  showOverlay('overlay-exit');
+});
+
+document.getElementById('btn-exit-cancel').addEventListener('click', hideAllOverlays);
+
+document.getElementById('btn-exit-confirm').addEventListener('click', () => {
+  if (GAME_MODE === 'multi') {
+    // Opponent wins by forfeit
+    onPlayerAbandoned();
+  } else {
+    cleanupAndGoMenu();
+  }
+});
+
+function onPlayerAbandoned() {
+  phase = PHASE.FINISHED;
+  clearInterval(countdownTimer);
+  clearInterval(pauseTimer);
+  if (GAME_MODE === 'multi' && roomRef) {
+    roomRef.update({ status: 'finished', forfeit: 'guest_left' });
+  }
+  saveMatchResult(MAX_POINTS, 0, 'loss');
+  cleanupAndGoMenu();
+}
+
+function cleanupAndGoMenu() {
+  cleanupMultiplayer();
+  window.location.href = 'menu.html';
 }
 
 // ─── PHYSICS ─────────────────────────────────────────────────────────────────
 function updatePhysics(dt) {
   if (phase !== PHASE.PLAYING) return;
 
-  // Move ball
   ball.x += ball.vx * dt;
   ball.y += ball.vy * dt;
 
-  // Wall bounces (left/right)
-  if (ball.x - BALL_R < 0) {
-    ball.x = BALL_R;
-    ball.vx = Math.abs(ball.vx);
+  // Top/bottom wall bounce
+  if (ball.y - BALL_R < FIELD_TOP) {
+    ball.y = FIELD_TOP + BALL_R;
+    ball.vy = Math.abs(ball.vy);
   }
-  if (ball.x + BALL_R > W) {
-    ball.x = W - BALL_R;
-    ball.vx = -Math.abs(ball.vx);
+  if (ball.y + BALL_R > FIELD_BOTTOM) {
+    ball.y = FIELD_BOTTOM - BALL_R;
+    ball.vy = -Math.abs(ball.vy);
   }
 
   // Paddle collisions
-  checkPaddleCollision();
+  checkPaddleHit();
 
-  // Scoring
-  if (ball.y + BALL_R < 0) {
-    // Ball passed top → bottom scores
-    scorePoint('bottom');
-  } else if (ball.y - BALL_R > H) {
-    // Ball passed bottom → top scores
-    scorePoint('top');
+  // Scoring: ball exits left or right
+  if (ball.x - BALL_R < PADDLE_X_LEFT - PADDLE_W * 2) {
+    scorePoint('right'); // right player scores (left missed)
+  } else if (ball.x + BALL_R > PADDLE_X_RIGHT + PADDLE_W * 2) {
+    scorePoint('left');  // left player scores (right missed)
   }
 
-  // Update player paddle from touch
-  if (touchX !== null) {
-    const targetX = Math.max(PADDLE_W / 2, Math.min(W - PADDLE_W / 2, touchX));
-    paddleBottom.x += (targetX - paddleBottom.x) * 0.35;
+  // Move player paddle toward touch
+  if (touchY !== null) {
+    const target = clampPaddleY(touchY);
+    paddleRight.y += (target - paddleRight.y) * 0.3;
   }
 
-  // AI update (only in AI mode)
+  // During countdown/scored: ball follows serving paddle
+  if (phase === PHASE.COUNTDOWN || phase === PHASE.SCORED) {
+    placeServe();
+  }
+
   if (GAME_MODE === 'ai') updateAI(dt);
 }
 
-function checkPaddleCollision() {
-  // Bottom paddle
-  if (ball.vy > 0 &&
-      ball.y + BALL_R >= PADDLE_Y_BOTTOM - PADDLE_H / 2 &&
-      ball.y + BALL_R <= PADDLE_Y_BOTTOM + PADDLE_H / 2 &&
-      ball.x >= paddleBottom.x - PADDLE_W / 2 - BALL_R &&
-      ball.x <= paddleBottom.x + PADDLE_W / 2 + BALL_R) {
-
-    ball.y  = PADDLE_Y_BOTTOM - PADDLE_H / 2 - BALL_R;
-    ball.vy = -Math.abs(ball.vy);
-    applyPaddleSpin(paddleBottom.x);
-    increaseBallSpeed();
+function checkPaddleHit() {
+  // Right paddle (player)
+  if (ball.vx > 0 &&
+      ball.x + BALL_R >= PADDLE_X_RIGHT - PADDLE_W / 2 &&
+      ball.x + BALL_R <= PADDLE_X_RIGHT + PADDLE_W &&
+      ball.y >= paddleRight.y - PADDLE_H / 2 - BALL_R &&
+      ball.y <= paddleRight.y + PADDLE_H / 2 + BALL_R) {
+    ball.x  = PADDLE_X_RIGHT - PADDLE_W / 2 - BALL_R;
+    ball.vx = -Math.abs(ball.vx);
+    applySpinY(paddleRight.y);
+    boostSpeed();
   }
 
-  // Top paddle
-  if (ball.vy < 0 &&
-      ball.y - BALL_R <= PADDLE_Y_TOP + PADDLE_H / 2 &&
-      ball.y - BALL_R >= PADDLE_Y_TOP - PADDLE_H / 2 &&
-      ball.x >= paddleTop.x - PADDLE_W / 2 - BALL_R &&
-      ball.x <= paddleTop.x + PADDLE_W / 2 + BALL_R) {
-
-    ball.y  = PADDLE_Y_TOP + PADDLE_H / 2 + BALL_R;
-    ball.vy = Math.abs(ball.vy);
-    applyPaddleSpin(paddleTop.x);
-    increaseBallSpeed();
+  // Left paddle (opponent)
+  if (ball.vx < 0 &&
+      ball.x - BALL_R <= PADDLE_X_LEFT + PADDLE_W / 2 &&
+      ball.x - BALL_R >= PADDLE_X_LEFT - PADDLE_W &&
+      ball.y >= paddleLeft.y - PADDLE_H / 2 - BALL_R &&
+      ball.y <= paddleLeft.y + PADDLE_H / 2 + BALL_R) {
+    ball.x  = PADDLE_X_LEFT + PADDLE_W / 2 + BALL_R;
+    ball.vx = Math.abs(ball.vx);
+    applySpinY(paddleLeft.y);
+    boostSpeed();
   }
 }
 
-function applyPaddleSpin(paddleX) {
-  const offset = (ball.x - paddleX) / (PADDLE_W / 2);
-  ball.vx = offset * H * 0.45;
+function applySpinY(paddleY) {
+  const offset = (ball.y - paddleY) / (PADDLE_H / 2);
+  const fieldH = FIELD_BOTTOM - FIELD_TOP;
+  ball.vy = offset * fieldH * 0.55;
 }
 
-function increaseBallSpeed() {
+function boostSpeed() {
   const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-  const newSpeed = Math.min(speed * 1.04, H * 1.1);
-  const ratio = newSpeed / speed;
-  ball.vx *= ratio;
-  ball.vy *= ratio;
+  const max   = W * 1.1;
+  if (speed < max) {
+    const ratio = Math.min(speed * 1.04, max) / speed;
+    ball.vx *= ratio;
+    ball.vy *= ratio;
+  }
 }
 
+// ─── SCORE ────────────────────────────────────────────────────────────────────
 function scorePoint(scorer) {
   scores[scorer]++;
-  serving = scorer === 'bottom' ? 'top' : 'bottom'; // loser serves next
-
+  serving = scorer === 'right' ? 'left' : 'right'; // loser serves
   updateHUD();
   phase = PHASE.SCORED;
+  placeServe();
 
   if (scores[scorer] >= MAX_POINTS) {
     endGame(scorer);
     return;
   }
 
-  // Reset and start countdown
-  resetBall(serving);
   setTimeout(() => {
     if (phase === PHASE.FINISHED) return;
-    startCountdown(serving === 'bottom' ? '¡Tu saque!' : 'Saque rival');
-  }, 400);
+    const label = serving === 'right' ? '¡Tu saque!' : 'Saque del rival';
+    startCountdown(label);
+  }, 500);
 }
 
 // ─── AI ───────────────────────────────────────────────────────────────────────
-let aiReactionCooldown = 0;
-
 function updateAI(dt) {
-  aiReactionCooldown -= dt;
-  if (aiReactionCooldown > 0) return;
+  aiErrorTimer -= dt;
+  if (aiErrorTimer <= 0) {
+    aiError      = (Math.random() * 2 - 1) * ai.errorRange * (FIELD_BOTTOM - FIELD_TOP);
+    aiErrorTimer = 0.4 + Math.random() * 0.3;
+  }
 
-  let target;
-  if (ai.predicts && ball.vy < 0) {
-    target = predictBallX();
+  let targetY;
+  if (ai.predicts && ball.vx < 0) {
+    targetY = predictBallY();
   } else {
-    target = ball.x;
+    targetY = ball.y;
   }
+  targetY = clampPaddleY(targetY + aiError);
 
-  // Add error
-  if (aiReactionCooldown <= -ai.reactionDelay) {
-    aiCurrentError = (Math.random() * 2 - 1) * ai.errorRange * W;
-    aiReactionCooldown = ai.reactionDelay;
-  }
-
-  target += aiCurrentError;
-  target = Math.max(PADDLE_W / 2, Math.min(W - PADDLE_W / 2, target));
-
-  const maxStep = ai.speed * W * dt;
-  const diff = target - paddleTop.x;
-
-  if (Math.abs(diff) <= maxStep) {
-    paddleTop.x = target;
-  } else {
-    paddleTop.x += Math.sign(diff) * maxStep;
-  }
+  const maxStep = ai.speed * (FIELD_BOTTOM - FIELD_TOP) * dt;
+  const diff    = targetY - paddleLeft.y;
+  paddleLeft.y += Math.sign(diff) * Math.min(Math.abs(diff), maxStep);
 }
 
-function predictBallX() {
-  // Simple linear prediction to top paddle Y
-  if (ball.vy === 0) return ball.x;
-  const timeToTop = (PADDLE_Y_TOP - ball.y) / ball.vy;
-  if (timeToTop < 0) return ball.x;
+function predictBallY() {
+  if (ball.vx === 0) return ball.y;
+  const timeToLeft = (ball.x - PADDLE_X_LEFT) / (-ball.vx);
+  if (timeToLeft < 0) return ball.y;
 
-  let px = ball.x + ball.vx * timeToTop;
+  let py = ball.y + ball.vy * timeToLeft;
+  const fieldH = FIELD_BOTTOM - FIELD_TOP;
 
-  // Bounce off walls
-  const bounces = Math.floor(Math.abs(px) / W);
-  px = px % W;
-  if (px < 0) px += W;
-  if (bounces % 2 === 1) px = W - px;
+  // Simulate wall bounces
+  py -= FIELD_TOP;
+  py = py % (fieldH * 2);
+  if (py < 0) py += fieldH * 2;
+  if (py > fieldH) py = fieldH * 2 - py;
+  py += FIELD_TOP;
 
-  return Math.max(PADDLE_W / 2, Math.min(W - PADDLE_W / 2, px));
+  return clampPaddleY(py);
+}
+
+// Also move AI during serve (picks a position)
+function updateAIServe(dt) {
+  if (serving !== 'left') return;
+  const target = clampPaddleY(fieldCenterY() + (Math.random() * 2 - 1) * (FIELD_BOTTOM - FIELD_TOP) * 0.25);
+  const maxStep = ai.speed * (FIELD_BOTTOM - FIELD_TOP) * dt;
+  const diff    = target - paddleLeft.y;
+  paddleLeft.y += Math.sign(diff) * Math.min(Math.abs(diff), maxStep);
+  placeServe();
 }
 
 // ─── GAME OVER ────────────────────────────────────────────────────────────────
@@ -381,45 +428,34 @@ function endGame(winnerSide) {
   phase = PHASE.FINISHED;
   winner = winnerSide;
   clearInterval(countdownTimer);
+  clearInterval(pauseTimer);
 
-  const playerWon = winnerSide === 'bottom';
-  const titleEl = document.getElementById('gameover-title');
+  const playerWon = winnerSide === 'right';
+  const titleEl   = document.getElementById('gameover-title');
   titleEl.textContent = playerWon ? '¡GANASTE!' : '¡PERDISTE!';
   titleEl.className   = 'gameover-title ' + (playerWon ? 'win' : 'loss');
-
-  document.getElementById('gameover-score').textContent =
-    `${scores.bottom} - ${scores.top}`;
+  document.getElementById('gameover-score').textContent = `${scores.right} - ${scores.left}`;
 
   showOverlay('overlay-gameover');
+  saveMatchResult(scores.right, scores.left, playerWon ? 'win' : 'loss');
 
-  // Save to history if logged in
-  if (!IS_GUEST && PLAYER_UID) {
-    const player = getCurrentPlayer();
-    if (player) {
-      saveMatch(
-        player,
-        OPPONENT_NAME,
-        scores.bottom,
-        scores.top,
-        GAME_MODE,
-        playerWon ? 'win' : 'loss'
-      );
-    }
-  }
-
-  if (GAME_MODE === 'multi' && roomRef) {
-    roomRef.update({ status: 'finished' });
-  }
+  if (GAME_MODE === 'multi' && roomRef) roomRef.update({ status: 'finished' });
 }
 
-document.getElementById('btn-play-again').addEventListener('click', () => {
-  window.location.reload();
-});
+function saveMatchResult(scoreMe, scoreOp, result) {
+  if (IS_GUEST || !PLAYER_UID) return;
+  db.collection('users').doc(PLAYER_UID).collection('matches').add({
+    date: firebase.firestore.FieldValue.serverTimestamp(),
+    opponent: OPPONENT_NAME,
+    scoreMe,
+    scoreOp,
+    mode: GAME_MODE,
+    result
+  }).catch(e => console.error('Error guardando partida:', e));
+}
 
-document.getElementById('btn-back-menu').addEventListener('click', () => {
-  cleanupMultiplayer();
-  window.location.href = 'menu.html';
-});
+document.getElementById('btn-play-again').addEventListener('click', () => window.location.reload());
+document.getElementById('btn-back-menu').addEventListener('click', () => { cleanupMultiplayer(); window.location.href = 'menu.html'; });
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function render() {
@@ -429,38 +465,37 @@ function render() {
   ctx.fillStyle = '#050510';
   ctx.fillRect(0, 0, W, H);
 
-  // Center line
-  ctx.setLineDash([16, 12]);
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-  ctx.lineWidth = 2;
+  // Field boundaries (top/bottom lines)
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, FIELD_TOP);    ctx.lineTo(W, FIELD_TOP);    ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, FIELD_BOTTOM); ctx.lineTo(W, FIELD_BOTTOM); ctx.stroke();
+
+  // Center dashed line
+  ctx.setLineDash([14, 10]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.lineWidth   = 1.5;
   ctx.beginPath();
-  ctx.moveTo(0, H / 2);
-  ctx.lineTo(W, H / 2);
+  ctx.moveTo(W / 2, FIELD_TOP);
+  ctx.lineTo(W / 2, FIELD_BOTTOM);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // Paddles
-  drawPaddle(paddleBottom.x, PADDLE_Y_BOTTOM, '#00e5ff');
-  drawPaddle(paddleTop.x,    PADDLE_Y_TOP,    '#ff4081');
+  drawPaddle(PADDLE_X_RIGHT, paddleRight.y, '#00e5ff');
+  drawPaddle(PADDLE_X_LEFT,  paddleLeft.y,  '#ff4081');
 
-  // Ball
-  if (phase !== PHASE.SCORED && phase !== PHASE.FINISHED) {
-    drawBall();
-  }
-
-  // Ball in SCORED/COUNTDOWN phases (stationary)
-  if (phase === PHASE.COUNTDOWN || phase === PHASE.SCORED) {
-    drawBall();
-  }
+  // Ball (hide only while briefly after scoring — not during countdown)
+  if (phase !== PHASE.FINISHED) drawBall();
 }
 
 function drawPaddle(x, y, color) {
-  const r = PADDLE_H / 2;
+  const r = PADDLE_W / 2;
   ctx.save();
   ctx.shadowColor = color;
-  ctx.shadowBlur  = 18;
+  ctx.shadowBlur  = 16;
   ctx.fillStyle   = color;
-  roundRect(ctx, x - PADDLE_W / 2, y - r, PADDLE_W, PADDLE_H, r);
+  roundRect(ctx, x - r, y - PADDLE_H / 2, PADDLE_W, PADDLE_H, r);
   ctx.fill();
   ctx.restore();
 }
@@ -468,7 +503,7 @@ function drawPaddle(x, y, color) {
 function drawBall() {
   ctx.save();
   ctx.shadowColor = 'white';
-  ctx.shadowBlur  = 20;
+  ctx.shadowBlur  = 18;
   ctx.fillStyle   = 'white';
   ctx.beginPath();
   ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
@@ -495,23 +530,31 @@ function loop(timestamp) {
   const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
   lastTime = timestamp;
 
+  // Player paddle follows touch/mouse always (even during countdown for serving)
+  if (touchY !== null) {
+    const target = clampPaddleY(touchY);
+    paddleRight.y += (target - paddleRight.y) * 0.3;
+    if (phase === PHASE.COUNTDOWN || phase === PHASE.SCORED) placeServe();
+  }
+
   if (GAME_MODE === 'ai') {
-    updatePhysics(dt);
+    if (phase === PHASE.PLAYING) {
+      updatePhysics(dt);
+    } else if (phase === PHASE.COUNTDOWN || phase === PHASE.SCORED) {
+      updateAIServe(dt);
+    }
   } else {
     updateMultiplayer(dt, timestamp);
   }
 
   render();
   updateHUD();
-
   rafId = requestAnimationFrame(loop);
 }
 
 // ─── MULTIPLAYER ──────────────────────────────────────────────────────────────
 function setupMultiplayer() {
   showOverlay('overlay-connecting');
-  document.getElementById('connecting-msg').textContent = 'Conectando a la sala...';
-
   roomRef = rtdb.ref(`rooms/${ROOM_CODE}`);
 
   if (ROLE === 'host') {
@@ -521,246 +564,161 @@ function setupMultiplayer() {
   }
 
   document.getElementById('btn-abort-connect').addEventListener('click', () => {
-    cleanupMultiplayer();
-    window.location.href = 'menu.html';
+    cleanupMultiplayer(); window.location.href = 'menu.html';
   });
 }
 
 function setupHostListeners() {
-  // Host: listen for guest paddle position
-  roomRef.child('paddles/guest').on('value', snap => {
-    const val = snap.val();
-    if (val !== null) paddleTop.x = val * W;
-  });
-
-  // Host: listen for pause/resume from guest
-  roomRef.child('gameEvents').on('value', snap => {
-    const evt = snap.val();
-    if (!evt) return;
-    if (evt.type === 'pause' && evt.by === 'guest' && phase === PHASE.PLAYING) {
-      pauses.top--;
-      pausedBy = 'top';
-      phase = PHASE.PAUSED;
-      showOverlay('overlay-pause');
-      document.getElementById('pauses-left').textContent = pauses.bottom;
-    }
-    if (evt.type === 'resume' && phase === PHASE.PAUSED && pausedBy === 'top') {
-      hideAllOverlays();
-      phase = PHASE.PLAYING;
-    }
-  });
-
-  // Host: detect guest disconnect
-  roomRef.child('guestConnected').on('value', snap => {
-    if (opponentConnected && snap.val() === false) {
-      onOpponentLeft();
-    }
-    if (snap.val() === true) opponentConnected = true;
-  });
-
-  // Mark host connected
   roomRef.child('hostConnected').set(true);
   roomRef.child('hostConnected').onDisconnect().set(false);
 
-  // Wait for guest to connect before starting
-  roomRef.child('guestConnected').once('value', snap => {
-    if (snap.val()) {
-      hideAllOverlays();
-      startGame();
+  // Receive guest paddle Y
+  roomRef.child('paddles/guest').on('value', snap => {
+    if (snap.val() !== null) paddleLeft.y = snap.val() * (FIELD_BOTTOM - FIELD_TOP) + FIELD_TOP;
+  });
+
+  // Receive pause/resume events from guest
+  roomRef.child('gameEvents').on('value', snap => {
+    const evt = snap.val();
+    if (!evt) return;
+    if (evt.type === 'pause' && evt.by === 'guest' && phase === PHASE.PLAYING && ballInLeftDomain()) {
+      triggerPause('left');
+    }
+    if (evt.type === 'resume' && phase === PHASE.PAUSED) {
+      resumeGame();
     }
   });
 
+  // Detect guest connect/disconnect
   roomRef.child('guestConnected').on('value', snap => {
     if (snap.val() === true && !opponentConnected) {
       opponentConnected = true;
       hideAllOverlays();
       startGame();
     }
+    if (opponentConnected && snap.val() === false) onOpponentLeft();
   });
 }
 
 function setupGuestListeners() {
-  // Guest: mark connected, read full game state from host
   roomRef.child('guestConnected').set(true);
   roomRef.child('guestConnected').onDisconnect().set(false);
 
-  // Guest: detect host disconnect
   roomRef.child('hostConnected').on('value', snap => {
-    if (opponentConnected && snap.val() === false) {
-      onOpponentLeft();
-    }
-    if (snap.val() === true) opponentConnected = true;
-  });
-
-  // Guest: receive game state from host
-  roomRef.child('gameState').on('value', snap => {
-    const state = snap.val();
-    if (!state) return;
-
-    // Flip coordinates for guest perspective (guest sees self at bottom)
-    ball.x  = W - state.ball.x * W;
-    ball.y  = H - state.ball.y * H;
-
-    paddleBottom.x = W - state.paddles.guest * W;
-    paddleTop.x    = W - state.paddles.host  * W;
-
-    scores.bottom = state.scores.guest;
-    scores.top    = state.scores.host;
-
-    pauses.bottom = state.pauses.guest;
-    pauses.top    = state.pauses.host;
-
-    // Sync game phase overlays
-    if (state.phase === PHASE.COUNTDOWN && phase !== PHASE.COUNTDOWN) {
-      phase = PHASE.COUNTDOWN;
-      countdownVal = state.countdown;
-      showOverlay('overlay-countdown');
-      document.getElementById('countdown-num').textContent = countdownVal;
-      document.getElementById('countdown-label').textContent = state.countdownLabel || '¡Preparate!';
-    }
-    if (state.phase === PHASE.PLAYING && phase !== PHASE.PLAYING) {
-      phase = PHASE.PLAYING;
-      hideAllOverlays();
-    }
-    if (state.phase === PHASE.PAUSED && phase !== PHASE.PAUSED) {
-      phase = PHASE.PAUSED;
-      showOverlay('overlay-pause');
-      document.getElementById('pauses-left').textContent = pauses.bottom;
-    }
-    if (state.phase === PHASE.FINISHED && phase !== PHASE.FINISHED) {
-      phase = PHASE.FINISHED;
-      endGame(state.winner === 'host' ? 'top' : 'bottom');
-    }
-
-    if (!opponentConnected) {
+    if (snap.val() === true && !opponentConnected) {
       opponentConnected = true;
       hideAllOverlays();
+    }
+    if (opponentConnected && snap.val() === false) onOpponentLeft();
+  });
+
+  // Receive full game state from host
+  roomRef.child('gameState').on('value', snap => {
+    const s = snap.val();
+    if (!s) return;
+
+    // Guest sees self on RIGHT, host on LEFT → flip X axis
+    ball.x = W - s.ball.x * W;
+    ball.y = FIELD_TOP + s.ball.y * (FIELD_BOTTOM - FIELD_TOP);
+
+    // Guest's paddle is host's "left", host's paddle is guest's "left"
+    paddleRight.y = FIELD_TOP + s.paddles.guest * (FIELD_BOTTOM - FIELD_TOP);
+    paddleLeft.y  = FIELD_TOP + s.paddles.host  * (FIELD_BOTTOM - FIELD_TOP);
+
+    scores.right = s.scores.guest;
+    scores.left  = s.scores.host;
+    pauses.right = s.pauses.guest;
+    pauses.left  = s.pauses.host;
+
+    if (s.phase === PHASE.COUNTDOWN && phase !== PHASE.COUNTDOWN) {
+      phase = PHASE.COUNTDOWN;
+      countdownVal = s.countdown;
+      showOverlay('overlay-countdown');
+      document.getElementById('countdown-num').textContent = countdownVal;
+      document.getElementById('countdown-label').textContent = s.countdownLabel || '';
+    }
+    if (s.phase === PHASE.PLAYING && phase !== PHASE.PLAYING) {
+      phase = PHASE.PLAYING; hideAllOverlays();
+    }
+    if (s.phase === PHASE.PAUSED && phase !== PHASE.PAUSED) {
+      pauses.right = s.pauses.guest;
+      triggerPause(s.pausedBy === 'host' ? 'left' : 'right');
+    }
+    if (s.phase === PHASE.FINISHED && phase !== PHASE.FINISHED) {
+      endGame(s.winner === 'host' ? 'left' : 'right');
     }
   });
 }
 
 function updateMultiplayer(dt, timestamp) {
   if (ROLE === 'host') {
-    updatePhysics(dt);
+    if (phase === PHASE.PLAYING) updatePhysics(dt);
+    else if (phase === PHASE.COUNTDOWN || phase === PHASE.SCORED) updateAIServe(dt); // host moves their paddle
 
-    // Sync to Firebase at limited rate
-    if (timestamp - lastSyncTime >= SYNC_INTERVAL) {
+    if (timestamp - lastSyncTime >= SYNC_MS) {
       lastSyncTime = timestamp;
-      syncGameStateToFirebase();
+      syncHostState();
     }
-
-    // Send local paddle position
-    rtdb.ref(`rooms/${ROOM_CODE}/paddles/host`).set(paddleBottom.x / W);
+    roomRef.child('paddles/host').set((paddleRight.y - FIELD_TOP) / (FIELD_BOTTOM - FIELD_TOP));
 
   } else {
-    // Guest: send paddle to Firebase
-    if (touchX !== null) {
-      const targetX = Math.max(PADDLE_W / 2, Math.min(W - PADDLE_W / 2, touchX));
-      paddleBottom.x += (targetX - paddleBottom.x) * 0.35;
+    // Guest: update own paddle and send
+    if (touchY !== null) {
+      const target = clampPaddleY(touchY);
+      paddleRight.y += (target - paddleRight.y) * 0.3;
     }
-    if (timestamp - lastSyncTime >= SYNC_INTERVAL) {
+    if (timestamp - lastSyncTime >= SYNC_MS) {
       lastSyncTime = timestamp;
-      // Guest sends THEIR paddle (which is "guest" in Firebase, inverted for host)
-      rtdb.ref(`rooms/${ROOM_CODE}/paddles/guest`).set(1 - paddleBottom.x / W);
+      // Guest's paddle appears as "left" from host perspective → invert
+      roomRef.child('paddles/guest').set(1 - (paddleRight.y - FIELD_TOP) / (FIELD_BOTTOM - FIELD_TOP));
     }
   }
 }
 
-function syncGameStateToFirebase() {
+function syncHostState() {
   if (!roomRef) return;
+  const fieldH = FIELD_BOTTOM - FIELD_TOP;
   roomRef.child('gameState').set({
-    phase: phase,
-    countdown: countdownVal,
-    countdownLabel: document.getElementById('countdown-label').textContent,
+    phase,
+    countdown:     countdownVal,
+    countdownLabel: document.getElementById('countdown-label')?.textContent || '',
+    pausedBy:      'host',
     ball: {
       x: ball.x / W,
-      y: ball.y / H
+      y: (ball.y - FIELD_TOP) / fieldH
     },
     paddles: {
-      host:  paddleBottom.x / W,
-      guest: paddleTop.x    / W
+      host:  (paddleRight.y - FIELD_TOP) / fieldH,
+      guest: (paddleLeft.y  - FIELD_TOP) / fieldH
     },
-    scores: {
-      host:  scores.bottom,
-      guest: scores.top
-    },
-    pauses: {
-      host:  pauses.bottom,
-      guest: pauses.top
-    },
-    winner: winner === 'bottom' ? 'host' : winner === 'top' ? 'guest' : null
+    scores: { host: scores.right, guest: scores.left },
+    pauses: { host: pauses.right, guest: pauses.left },
+    winner: winner === 'right' ? 'host' : winner === 'left' ? 'guest' : null
   });
-}
-
-function syncPauseToFirebase() {
-  roomRef.child('gameEvents').set({ type: 'pause', by: ROLE, ts: Date.now() });
-  syncGameStateToFirebase();
-}
-
-function syncResumeToFirebase() {
-  roomRef.child('gameEvents').set({ type: 'resume', by: ROLE, ts: Date.now() });
-  syncGameStateToFirebase();
 }
 
 function onOpponentLeft() {
   if (phase === PHASE.FINISHED) return;
   phase = PHASE.FINISHED;
-  clearInterval(countdownTimer);
-
-  // Give forfeit scores
-  const myScore  = MAX_POINTS;
-  const oppScore = scores.bottom > scores.top ? scores.top : scores.bottom;
-  document.getElementById('forfeit-score').textContent = `${myScore} - ${oppScore}`;
-
+  clearInterval(countdownTimer); clearInterval(pauseTimer);
+  document.getElementById('forfeit-score').textContent = `${MAX_POINTS} - 0`;
   hideAllOverlays();
   showOverlay('overlay-opponent-left');
-
-  if (!IS_GUEST && PLAYER_UID) {
-    const player = getCurrentPlayer();
-    if (player) saveMatch(player, OPPONENT_NAME, myScore, oppScore, 'multi', 'win');
-  }
+  saveMatchResult(MAX_POINTS, 0, 'win');
 }
 
 document.getElementById('btn-back-menu-forfeit').addEventListener('click', () => {
-  cleanupMultiplayer();
-  window.location.href = 'menu.html';
+  cleanupMultiplayer(); window.location.href = 'menu.html';
 });
 
 function cleanupMultiplayer() {
   if (roomRef) {
-    if (ROLE === 'host') {
-      roomRef.remove();
-    } else {
-      roomRef.child('guestConnected').set(false);
-    }
+    if (ROLE === 'host') roomRef.remove();
+    else roomRef.child('guestConnected').set(false);
     roomRef.off();
     roomRef = null;
   }
   if (rafId) cancelAnimationFrame(rafId);
-}
-
-// ─── GUEST PAUSE ──────────────────────────────────────────────────────────────
-// In multiplayer as guest, wire up pause button differently
-if (GAME_MODE === 'multi' && ROLE === 'guest') {
-  document.getElementById('btn-pause').addEventListener('click', () => {
-    if (phase !== PHASE.PLAYING) return;
-    if (pauses.bottom <= 0) return;
-    if (!isBallInDomain('bottom')) return;
-
-    pauses.bottom--;
-    pausedBy = 'bottom';
-    phase = PHASE.PAUSED;
-    document.getElementById('pauses-left').textContent = pauses.bottom;
-    showOverlay('overlay-pause');
-    syncPauseToFirebase();
-  }, { once: false });
-
-  document.getElementById('btn-resume').addEventListener('click', () => {
-    if (ROLE === 'guest' && pausedBy === 'bottom') {
-      resumeGame();
-      syncResumeToFirebase();
-    }
-  });
 }
 
 // ─── START ────────────────────────────────────────────────────────────────────
@@ -769,16 +727,13 @@ function startGame() {
   updateHUD();
   startCountdown('¡Preparate!');
   lastTime = performance.now();
-  rafId = requestAnimationFrame(loop);
+  if (!rafId) rafId = requestAnimationFrame(loop);
 }
 
-function getCurrentPlayer() {
-  return { uid: PLAYER_UID, isGuest: IS_GUEST };
-}
-
-// Boot
 if (GAME_MODE === 'ai') {
   startGame();
 } else {
+  lastTime = performance.now();
+  rafId = requestAnimationFrame(loop);
   setupMultiplayer();
 }

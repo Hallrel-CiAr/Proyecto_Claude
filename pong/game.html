@@ -11,24 +11,31 @@
 
     <canvas id="game-canvas"></canvas>
 
-    <!-- TOP HUD (opponent) -->
-    <div id="hud-top">
-      <div class="hud-player">
-        <span class="hud-name" id="hud-opponent-name">Oponente</span>
-        <div class="hud-pauses" id="hud-opponent-pauses"></div>
+    <!-- HUD BAR (top) -->
+    <div id="hud-bar">
+      <!-- Opponent (left side) -->
+      <div class="hud-side">
+        <div class="hud-score" id="hud-score-opponent">0</div>
+        <div>
+          <div class="hud-name" id="hud-opponent-name">Oponente</div>
+          <div class="hud-pauses" id="hud-opponent-pauses"></div>
+        </div>
       </div>
-      <div class="hud-score" id="hud-score-opponent">0</div>
-    </div>
 
-    <!-- BOTTOM HUD (local player) -->
-    <div id="hud-bottom">
-      <div class="hud-player">
-        <span class="hud-name" id="hud-player-name">Jugador</span>
-        <div class="hud-pauses" id="hud-player-pauses"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
+      <!-- Center separator -->
+      <div class="hud-center">VS</div>
+
+      <!-- Player (right side) -->
+      <div class="hud-side hud-side-right">
+        <div>
+          <div class="hud-name" id="hud-player-name">Jugador</div>
+          <div class="hud-pauses" id="hud-player-pauses"></div>
+        </div>
         <div class="hud-score" id="hud-score-player">0</div>
-        <button id="btn-pause">⏸</button>
+        <div class="hud-actions">
+          <button id="btn-pause" title="Pausa">⏸</button>
+          <button id="btn-exit" title="Salir">✕</button>
+        </div>
       </div>
     </div>
 
@@ -41,8 +48,19 @@
     <!-- PAUSE OVERLAY -->
     <div class="overlay hidden" id="overlay-pause">
       <div class="pause-overlay-title">⏸ PAUSA</div>
-      <div class="pause-info" id="pause-info">Pausas restantes: <span id="pauses-left">2</span></div>
+      <div class="pause-timer" id="pause-timer">15</div>
+      <div class="pause-info">Pausas restantes: <span id="pauses-left">2</span></div>
       <button id="btn-resume">▶ Continuar</button>
+    </div>
+
+    <!-- EXIT CONFIRM OVERLAY -->
+    <div class="overlay hidden" id="overlay-exit">
+      <div class="pause-overlay-title" style="color:#ff4081;">¿Abandonar?</div>
+      <div class="pause-info" id="exit-msg">Tu rival ganará la partida.</div>
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button class="btn-gameover-secondary" id="btn-exit-cancel">Seguir jugando</button>
+        <button class="btn-gameover-primary" style="background:#ff4081;" id="btn-exit-confirm">Abandonar</button>
+      </div>
     </div>
 
     <!-- GAME OVER OVERLAY -->
@@ -55,12 +73,12 @@
       </div>
     </div>
 
-    <!-- CONNECTING OVERLAY (multiplayer only) -->
+    <!-- CONNECTING OVERLAY -->
     <div class="overlay hidden" id="overlay-connecting">
-      <div id="connecting-screen">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
         <div class="spinner"></div>
-        <p id="connecting-msg">Conectando a la sala...</p>
-        <button class="btn-gameover-secondary" style="margin-top:16px;" id="btn-abort-connect">Cancelar</button>
+        <p id="connecting-msg" style="color:var(--text-dim);">Conectando...</p>
+        <button class="btn-gameover-secondary" id="btn-abort-connect">Cancelar</button>
       </div>
     </div>
 

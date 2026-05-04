@@ -1,0 +1,31 @@
+body {
+    /* Centra el contenido del cuerpo */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    
+    /* Estilos de fondo y tipografía */
+    background-color: #222;
+    color: #eee;
+    font-family: 'Arial', sans-serif;
+}
+
+canvas {
+    /* Estilos para el lienzo de juego */
+    background-color: #4a6a4a; /* Verde militar oscuro para el fondo del nivel */
+    border: 2px solid #888;
+    
+    /* Configuración para que el pixel art se vea nítido */
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+h1 {
+    /* Estilo para el título del juego */
+    margin-bottom: 20px;
+    color: #f0e68c; /* Color arena */
+}

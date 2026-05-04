@@ -38,7 +38,14 @@ function resizeCanvas() {
 }
 
 resizeCanvas();
-window.addEventListener('resize', () => { resizeCanvas(); placeServe(); });
+window.addEventListener('resize', () => { resizeCanvas(); placeServe(); checkOrientation(); });
+window.addEventListener('orientationchange', () => { setTimeout(() => { resizeCanvas(); checkOrientation(); }, 200); });
+
+function checkOrientation() {
+  const portrait = window.innerHeight > window.innerWidth;
+  const el = document.getElementById('overlay-rotate');
+  if (el) el.classList.toggle('hidden', !portrait);
+}
 
 // ─── GAME STATE ───────────────────────────────────────────────────────────────
 const PHASE = {
@@ -572,9 +579,9 @@ function setupHostListeners() {
   roomRef.child('hostConnected').set(true);
   roomRef.child('hostConnected').onDisconnect().set(false);
 
-  // Receive guest paddle Y
+  // Receive guest paddle Y (no inversion needed — Y axis is the same for both players)
   roomRef.child('paddles/guest').on('value', snap => {
-    if (snap.val() !== null) paddleLeft.y = snap.val() * (FIELD_BOTTOM - FIELD_TOP) + FIELD_TOP;
+    if (snap.val() !== null) paddleLeft.y = FIELD_TOP + snap.val() * (FIELD_BOTTOM - FIELD_TOP);
   });
 
   // Receive pause/resume events from guest
@@ -617,13 +624,13 @@ function setupGuestListeners() {
     const s = snap.val();
     if (!s) return;
 
-    // Guest sees self on RIGHT, host on LEFT → flip X axis
+    // Ball: flip X axis so guest sees themselves on the right
     ball.x = W - s.ball.x * W;
     ball.y = FIELD_TOP + s.ball.y * (FIELD_BOTTOM - FIELD_TOP);
 
-    // Guest's paddle is host's "left", host's paddle is guest's "left"
-    paddleRight.y = FIELD_TOP + s.paddles.guest * (FIELD_BOTTOM - FIELD_TOP);
-    paddleLeft.y  = FIELD_TOP + s.paddles.host  * (FIELD_BOTTOM - FIELD_TOP);
+    // Only update OPPONENT paddle (host's paddle). Guest manages own paddle locally.
+    // Y axis is NOT flipped — top/bottom is the same for both players.
+    paddleLeft.y = FIELD_TOP + s.paddles.host * (FIELD_BOTTOM - FIELD_TOP);
 
     scores.right = s.scores.guest;
     scores.left  = s.scores.host;
@@ -669,8 +676,8 @@ function updateMultiplayer(dt, timestamp) {
     }
     if (timestamp - lastSyncTime >= SYNC_MS) {
       lastSyncTime = timestamp;
-      // Guest's paddle appears as "left" from host perspective → invert
-      roomRef.child('paddles/guest').set(1 - (paddleRight.y - FIELD_TOP) / (FIELD_BOTTOM - FIELD_TOP));
+      // Send own paddle Y (no inversion — Y axis is the same for both players)
+      roomRef.child('paddles/guest').set((paddleRight.y - FIELD_TOP) / (FIELD_BOTTOM - FIELD_TOP));
     }
   }
 }
@@ -729,6 +736,8 @@ function startGame() {
   lastTime = performance.now();
   if (!rafId) rafId = requestAnimationFrame(loop);
 }
+
+checkOrientation();
 
 if (GAME_MODE === 'ai') {
   startGame();

@@ -1,0 +1,30 @@
+{
+  "name": "rescate-del-soldado",
+  "version": "0.1.0",
+  "description": "Rescate del Soldado - Juego de acción táctica",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "build-win": "electron-builder --win --x64",
+    "serve": "python -m http.server 8081"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.rescatesoldado.game",
+    "productName": "Rescate del Soldado",
+    "directories": { "output": "dist-electron" },
+    "files": ["**/*", "!node_modules/**", "!dist-electron/**"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": ["es"]
+    }
+  }
+}
